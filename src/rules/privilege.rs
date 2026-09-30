@@ -1,6 +1,6 @@
 //! Privilege rules.
 
-use crate::events::{Event, EventType, Severity};
+use crate::events::{EventType, Severity};
 use crate::rules::{Finding, Rule, RuleContext};
 
 /// PRIV-001: sudo invocation of an executable outside expected system paths.
@@ -84,6 +84,7 @@ fn parent_of(path: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::events::Event;
     use crate::config::RuleConfig;
     use crate::events::TimestampPrecision;
     use crate::rules::index_by_id;

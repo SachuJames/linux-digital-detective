@@ -269,7 +269,7 @@ fn read_process(dir: &str) -> Option<ProcessInfo> {
     })
 }
 
-pub(crate) fn uid_name_map() -> HashMap<u32, String> {
+pub fn uid_name_map() -> HashMap<u32, String> {
     let mut map = HashMap::new();
     if let Ok(text) = std::fs::read_to_string("/etc/passwd") {
         for line in text.lines() {

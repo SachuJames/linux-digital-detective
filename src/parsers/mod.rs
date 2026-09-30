@@ -88,6 +88,13 @@ pub fn default_registry() -> Vec<Box<dyn Parser>> {
     ]
 }
 
+/// The result of parsing one evidence file.
+pub struct ParsedFile {
+    pub events: Vec<Event>,
+    /// Name of the parser that handled the file.
+    pub parser: String,
+}
+
 /// Parse one evidence unit into events, updating `stats`.
 ///
 /// Strategy:
@@ -100,7 +107,7 @@ pub fn parse_evidence(
     lines: &[String],
     first_id: EventId,
     stats: &mut ParseStats,
-) -> Result<Vec<Event>> {
+) -> Result<ParsedFile> {
     let registry = default_registry();
     let mut events = Vec::new();
     let mut next_id = first_id;
@@ -122,7 +129,10 @@ pub fn parse_evidence(
                         ParsedLine::Skipped(reason) => bump_skip(stats, reason),
                     }
                 }
-                return Ok(events);
+                return Ok(ParsedFile {
+                    events,
+                    parser: parser.name().to_string(),
+                });
             }
         }
     }
@@ -188,7 +198,10 @@ pub fn parse_evidence(
             bump_skip(stats, SkipReason::UnsupportedFormat);
         }
     }
-    Ok(events)
+    Ok(ParsedFile {
+        events,
+        parser: registry[best_idx].name().to_string(),
+    })
 }
 
 fn bump_skip(stats: &mut ParseStats, reason: SkipReason) {
