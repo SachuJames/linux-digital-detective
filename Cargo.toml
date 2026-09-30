@@ -6,7 +6,7 @@ description = "A local-first Linux incident investigation and evidence-correlati
 license = "MIT"
 repository = "https://github.com/SachuJames/linux-digital-detective"
 readme = "README.md"
-rust-version = "1.75"
+rust-version = "1.80"
 keywords = ["forensics", "incident-response", "linux", "observability", "cli"]
 categories = ["command-line-utilities"]
 

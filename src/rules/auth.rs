@@ -62,7 +62,8 @@ impl Rule for RepeatedAuthFailures {
             if k.0.is_empty() {
                 continue;
             }
-            let window_start = success.timestamp - chrono::Duration::seconds(cfg.auth_window_secs);
+            let window_start =
+                success.timestamp - chrono::Duration::seconds(cfg.auth_window_secs);
             let failures: Vec<&Event> = ctx
                 .events
                 .iter()
@@ -83,7 +84,8 @@ impl Rule for RepeatedAuthFailures {
                 .map(|e| Finding::evidence_ref(e))
                 .chain(std::iter::once(Finding::evidence_ref(success)))
                 .collect();
-            let span = (success.timestamp - failures.first().unwrap().timestamp).num_seconds();
+            let span =
+                (success.timestamp - failures.first().unwrap().timestamp).num_seconds();
             out.push(Finding {
                 rule_id: self.id().to_string(),
                 title: self.title().to_string(),
@@ -144,14 +146,24 @@ mod tests {
         ];
         let by_id = index_by_id(&events);
         let cfg = RuleConfig::default();
-        let ctx = RuleContext { events: &events, by_id: &by_id, config: &cfg };
+        let ctx = RuleContext {
+            events: &events,
+            by_id: &by_id,
+            config: &cfg,
+        };
         let findings = RepeatedAuthFailures.evaluate(&ctx);
         assert_eq!(findings.len(), 1);
         let f = &findings[0];
         assert_eq!(f.rule_id, "AUTH-001");
         assert_eq!(f.event_ids, vec![1, 2, 3, 4]);
-        assert!(f.explanation.contains("requires investigation") || f.explanation.contains("should be investigated"));
-        assert!(!f.explanation.to_ascii_lowercase().contains("attack occurred"));
+        assert!(
+            f.explanation.contains("requires investigation")
+                || f.explanation.contains("should be investigated")
+        );
+        assert!(!f
+            .explanation
+            .to_ascii_lowercase()
+            .contains("attack occurred"));
     }
 
     #[test]
@@ -163,7 +175,11 @@ mod tests {
         ];
         let by_id = index_by_id(&events);
         let cfg = RuleConfig::default();
-        let ctx = RuleContext { events: &events, by_id: &by_id, config: &cfg };
+        let ctx = RuleContext {
+            events: &events,
+            by_id: &by_id,
+            config: &cfg,
+        };
         assert!(RepeatedAuthFailures.evaluate(&ctx).is_empty());
     }
 
@@ -179,7 +195,11 @@ mod tests {
         events.push(ok);
         let by_id = index_by_id(&events);
         let cfg = RuleConfig::default();
-        let ctx = RuleContext { events: &events, by_id: &by_id, config: &cfg };
+        let ctx = RuleContext {
+            events: &events,
+            by_id: &by_id,
+            config: &cfg,
+        };
         assert!(RepeatedAuthFailures.evaluate(&ctx).is_empty());
     }
 }

@@ -115,8 +115,9 @@ pub fn load(explicit: Option<&str>) -> Result<Config> {
     let text = std::fs::read_to_string(&path).map_err(|e| {
         Error::Config(format!("could not read {}: {e}", path.display()))
     })?;
-    let cfg: Config = toml::from_str(&text)
-        .map_err(|e| Error::Config(format!("could not parse {}: {e}", path.display())))?;
+    let cfg: Config = toml::from_str(&text).map_err(|e| {
+        Error::Config(format!("could not parse {}: {e}", path.display()))
+    })?;
     cfg.validate()?;
     Ok(cfg)
 }

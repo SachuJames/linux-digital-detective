@@ -18,9 +18,9 @@ fn command_executable(body: &str) -> Option<String> {
 }
 
 fn under_trusted(path: &str, trusted: &[String]) -> bool {
-    trusted.iter().any(|d| {
-        path == d || path.starts_with(&format!("{d}/"))
-    })
+    trusted
+        .iter()
+        .any(|d| path == d || path.starts_with(&format!("{d}/")))
 }
 
 impl Rule for SudoOutsideTrustedPaths {
@@ -45,12 +45,15 @@ impl Rule for SudoOutsideTrustedPaths {
     fn evaluate(&self, ctx: &RuleContext) -> Vec<Finding> {
         let mut out = Vec::new();
         for e in ctx.events.iter().filter(|e| {
-            e.event_type == EventType::Privilege && e.subtype.as_deref() == Some("sudo_command")
+            e.event_type == EventType::Privilege
+                && e.subtype.as_deref() == Some("sudo_command")
         }) {
             let Some(exe) = command_executable(&e.message) else {
                 continue;
             };
-            if !exe.starts_with('/') || under_trusted(&exe, &ctx.config.trusted_exec_dirs) {
+            if !exe.starts_with('/')
+                || under_trusted(&exe, &ctx.config.trusted_exec_dirs)
+            {
                 continue;
             }
             out.push(Finding {
@@ -78,14 +81,16 @@ impl Rule for SudoOutsideTrustedPaths {
 }
 
 fn parent_of(path: &str) -> &str {
-    path.rsplit_once('/').map(|(p, _)| if p.is_empty() { "/" } else { p }).unwrap_or(path)
+    path.rsplit_once('/')
+        .map(|(p, _)| if p.is_empty() { "/" } else { p })
+        .unwrap_or(path)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::Event;
     use crate::config::RuleConfig;
+    use crate::events::Event;
     use crate::events::TimestampPrecision;
     use crate::rules::index_by_id;
     use chrono::{FixedOffset, TimeZone};
@@ -107,7 +112,11 @@ mod tests {
     fn run(events: &[Event]) -> Vec<Finding> {
         let by_id = index_by_id(events);
         let cfg = RuleConfig::default();
-        let ctx = RuleContext { events, by_id: &by_id, config: &cfg };
+        let ctx = RuleContext {
+            events,
+            by_id: &by_id,
+            config: &cfg,
+        };
         SudoOutsideTrustedPaths.evaluate(&ctx)
     }
 

@@ -81,7 +81,9 @@ impl From<Error> for ExitCode {
             | Error::FileTooLarge { .. } => ExitCode::Evidence,
             // Line-too-long and transient I/O are reported but do not fail the run;
             // they surface as skipped-line statistics instead.
-            Error::LineTooLong { .. } | Error::Io(_) | Error::Json(_) => ExitCode::Internal,
+            Error::LineTooLong { .. } | Error::Io(_) | Error::Json(_) => {
+                ExitCode::Internal
+            }
             Error::Privilege(_) | Error::LinuxInterface(_) => ExitCode::Evidence,
         }
     }

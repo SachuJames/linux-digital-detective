@@ -15,7 +15,9 @@ pub fn read_proc_file(path: &str) -> Result<String> {
         std::io::ErrorKind::PermissionDenied => Error::PermissionDenied {
             path: path.to_string(),
         },
-        std::io::ErrorKind::NotFound => Error::LinuxInterface(format!("{path} not present")),
+        std::io::ErrorKind::NotFound => {
+            Error::LinuxInterface(format!("{path} not present"))
+        }
         _ => Error::UnreadableFile {
             path: path.to_string(),
             reason: e.to_string(),
@@ -77,7 +79,10 @@ mod tests {
     fn proc_self_is_readable() {
         // /proc/self/status is readable by any user on a normal system.
         let r = read_proc_file("/proc/self/status");
-        assert!(r.is_ok(), "expected /proc/self/status to be readable: {r:?}");
+        assert!(
+            r.is_ok(),
+            "expected /proc/self/status to be readable: {r:?}"
+        );
     }
 
     #[test]

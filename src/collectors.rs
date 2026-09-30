@@ -98,7 +98,10 @@ pub fn collect_snapshot() -> Result<SystemSnapshot> {
 }
 
 /// Diff two snapshots into a change list.
-pub fn diff_snapshots(prev: &SystemSnapshot, next: &SystemSnapshot) -> Vec<SnapshotChange> {
+pub fn diff_snapshots(
+    prev: &SystemSnapshot,
+    next: &SystemSnapshot,
+) -> Vec<SnapshotChange> {
     let mut out = Vec::new();
     let prev_pids: HashMap<u32, &ProcessInfo> =
         prev.processes.iter().map(|p| (p.pid, p)).collect();
@@ -148,7 +151,11 @@ pub fn change_to_event(
                 .pid(p.pid)
                 .ppid(p.ppid)
                 .process_name(short(&p.exe))
-                .message(format!("process created: {} (pid {})", short(&p.exe), p.pid))
+                .message(format!(
+                    "process created: {} (pid {})",
+                    short(&p.exe),
+                    p.pid
+                ))
                 .meta("exe", p.exe.clone())
                 .meta("uid", p.uid.to_string())
                 .meta("state", p.state.clone());
@@ -200,12 +207,17 @@ fn with_socket_fields(
     mut b: crate::events::EventBuilder,
     s: &SocketInfo,
 ) -> crate::events::EventBuilder {
-    b = b.meta("proto", s.proto.clone()).meta("state", s.state.clone());
+    b = b
+        .meta("proto", s.proto.clone())
+        .meta("state", s.state.clone());
     if let Some((ip, port)) = s.local {
         b = b.meta("local", format!("{ip}:{port}"));
     }
     if let Some((ip, port)) = s.remote {
-        b = b.dst_addr(ip).port(port).meta("remote", format!("{ip}:{port}"));
+        b = b
+            .dst_addr(ip)
+            .port(port)
+            .meta("remote", format!("{ip}:{port}"));
     }
     b
 }
@@ -274,8 +286,7 @@ pub fn uid_name_map() -> HashMap<u32, String> {
     if let Ok(text) = std::fs::read_to_string("/etc/passwd") {
         for line in text.lines() {
             let mut parts = line.split(':');
-            let (Some(name), _, Some(uid)) =
-                (parts.next(), parts.next(), parts.next())
+            let (Some(name), _, Some(uid)) = (parts.next(), parts.next(), parts.next())
             else {
                 continue;
             };
@@ -418,8 +429,12 @@ mod tests {
             mem_available_kb: None,
         };
         let changes = diff_snapshots(&prev, &next);
-        assert!(changes.iter().any(|c| matches!(c, SnapshotChange::ProcessCreated(p) if p.pid == 3)));
-        assert!(changes.iter().any(|c| matches!(c, SnapshotChange::ProcessExited { pid: 2, .. })));
+        assert!(changes
+            .iter()
+            .any(|c| matches!(c, SnapshotChange::ProcessCreated(p) if p.pid == 3)));
+        assert!(changes
+            .iter()
+            .any(|c| matches!(c, SnapshotChange::ProcessExited { pid: 2, .. })));
     }
 
     #[test]
@@ -434,10 +449,14 @@ mod tests {
             state: "R".into(),
             rss_kb: Some(1024),
         };
-        let e = change_to_event(7, at, &SnapshotChange::ProcessCreated(p), &HashMap::new());
+        let e =
+            change_to_event(7, at, &SnapshotChange::ProcessCreated(p), &HashMap::new());
         assert_eq!(e.id, 7);
         assert_eq!(e.subtype.as_deref(), Some("process_created"));
         assert_eq!(e.pid, Some(42));
-        assert_eq!(e.metadata.get("exe").map(|s| s.as_str()), Some("/usr/bin/python3"));
+        assert_eq!(
+            e.metadata.get("exe").map(|s| s.as_str()),
+            Some("/usr/bin/python3")
+        );
     }
 }

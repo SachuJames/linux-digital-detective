@@ -82,7 +82,9 @@ pub fn collect(input: &str, root_label: &str) -> Result<Vec<Evidence>> {
 
     let path = Path::new(input);
     if !path.exists() {
-        return Err(Error::Evidence(format!("no such file or directory: {input}")));
+        return Err(Error::Evidence(format!(
+            "no such file or directory: {input}"
+        )));
     }
 
     let mut out = Vec::new();
@@ -137,14 +139,18 @@ fn evidence_for_file(path: &Path) -> Result<Evidence> {
 
 /// Recursively scan `dir`, anchored at `root`. Symlinks are resolved with
 /// [`std::fs::canonicalize`]; anything resolving outside `root` is skipped.
-fn scan_dir(root: &Path, dir: &Path, depth: usize, out: &mut Vec<Evidence>) -> Result<()> {
+fn scan_dir(
+    root: &Path,
+    dir: &Path,
+    depth: usize,
+    out: &mut Vec<Evidence>,
+) -> Result<()> {
     if depth > MAX_RECURSION_DEPTH {
         return Ok(());
     }
     let entries = std::fs::read_dir(dir).map_err(|e| classify_read_error(dir, e))?;
-    let mut names: Vec<PathBuf> = entries
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .collect();
+    let mut names: Vec<PathBuf> =
+        entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
     names.sort();
 
     for path in names {
@@ -167,7 +173,10 @@ fn scan_dir(root: &Path, dir: &Path, depth: usize, out: &mut Vec<Evidence>) -> R
                     "warning: skipping symlink escaping the evidence root: {}",
                     path.display()
                 ),
-                Err(e) => eprintln!("warning: skipping dangling symlink {}: {e}", path.display()),
+                Err(e) => eprintln!(
+                    "warning: skipping dangling symlink {}: {e}",
+                    path.display()
+                ),
             }
             continue;
         }
@@ -220,12 +229,11 @@ pub fn read_text(evidence: &Evidence, too_long: &mut u64) -> Result<Vec<String>>
     let bytes = if evidence.is_stdin {
         let mut buf = Vec::new();
         use std::io::Read;
-        std::io::stdin()
-            .read_to_end(&mut buf)
-            .map_err(Error::Io)?;
+        std::io::stdin().read_to_end(&mut buf).map_err(Error::Io)?;
         buf
     } else {
-        std::fs::read(&evidence.path).map_err(|e| classify_read_error(&evidence.path, e))?
+        std::fs::read(&evidence.path)
+            .map_err(|e| classify_read_error(&evidence.path, e))?
     };
     let text = String::from_utf8_lossy(&bytes);
     let mut lines = Vec::new();
@@ -281,8 +289,14 @@ mod tests {
             EvidenceKind::guess_from_name("syslog"),
             EvidenceKind::Syslog
         );
-        assert_eq!(EvidenceKind::guess_from_name("app.jsonl"), EvidenceKind::JsonLines);
-        assert_eq!(EvidenceKind::guess_from_name("notes.txt"), EvidenceKind::Unknown);
+        assert_eq!(
+            EvidenceKind::guess_from_name("app.jsonl"),
+            EvidenceKind::JsonLines
+        );
+        assert_eq!(
+            EvidenceKind::guess_from_name("notes.txt"),
+            EvidenceKind::Unknown
+        );
     }
 
     #[test]

@@ -78,7 +78,7 @@ pub fn all_rules() -> Vec<Box<dyn Rule>> {
 }
 
 /// Build the lookup map rules use.
-pub fn index_by_id<'a>(events: &'a [Event]) -> HashMap<EventId, &'a Event> {
+pub fn index_by_id(events: &[Event]) -> HashMap<EventId, &Event> {
     events.iter().map(|e| (e.id, e)).collect()
 }
 

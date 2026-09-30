@@ -33,21 +33,29 @@ impl Parser for GenericTimestampParser {
     fn parse_line(&self, ctx: &ParseContext, line: &str) -> Option<ParsedLine> {
         let parsed = match parse_at_start(line) {
             Some(Ok(p)) => p,
-            Some(Err(_)) => return Some(ParsedLine::Skipped(SkipReason::MalformedTimestamp)),
+            Some(Err(_)) => {
+                return Some(ParsedLine::Skipped(SkipReason::MalformedTimestamp))
+            }
             None => return Some(ParsedLine::Skipped(SkipReason::UnsupportedFormat)),
         };
         let rest = line[parsed.consumed..].trim().to_string();
         if rest.is_empty() {
             return Some(ParsedLine::Skipped(SkipReason::IncompleteRecord));
         }
-        let event = Event::builder(ctx.event_id, parsed.dt, self.name(), ctx.label(), ctx.line_no)
-            .precision(parsed.precision)
-            .partial_timestamp(parsed.partial)
-            .raw_timestamp(parsed.raw.clone())
-            .offset_explicit(parsed.offset_explicit)
-            .message(rest)
-            .confidence(0.3)
-            .build();
+        let event = Event::builder(
+            ctx.event_id,
+            parsed.dt,
+            self.name(),
+            ctx.label(),
+            ctx.line_no,
+        )
+        .precision(parsed.precision)
+        .partial_timestamp(parsed.partial)
+        .raw_timestamp(parsed.raw.clone())
+        .offset_explicit(parsed.offset_explicit)
+        .message(rest)
+        .confidence(0.3)
+        .build();
         Some(ParsedLine::Event(event))
     }
 }

@@ -15,9 +15,9 @@ use std::sync::LazyLock;
 
 use crate::events::{Event, EventType, Severity};
 use crate::evidence::EvidenceKind;
+use crate::evidence::SkipReason;
 use crate::parsers::timestamps::{parse_at_start, ParsedTimestamp};
 use crate::parsers::{ParseContext, ParsedLine, Parser};
-use crate::evidence::SkipReason;
 
 pub struct SyslogParser;
 
@@ -76,8 +76,14 @@ pub(crate) fn strip_envelope(line: &str) -> Option<Result<Envelope, String>> {
             .map(|m| m.as_str())
             .unwrap_or("unknown")
             .to_string(),
-        pid: caps.name("pid").and_then(|m| m.as_str().parse::<u32>().ok()),
-        message: caps.name("msg").map(|m| m.as_str()).unwrap_or("").to_string(),
+        pid: caps
+            .name("pid")
+            .and_then(|m| m.as_str().parse::<u32>().ok()),
+        message: caps
+            .name("msg")
+            .map(|m| m.as_str())
+            .unwrap_or("")
+            .to_string(),
     }))
 }
 
@@ -110,15 +116,21 @@ impl Parser for SyslogParser {
         };
         let parsed = env.parsed;
 
-        let mut b = Event::builder(ctx.event_id, parsed.dt, self.name(), ctx.label(), ctx.line_no)
-            .precision(parsed.precision)
-            .partial_timestamp(parsed.partial)
-            .raw_timestamp(parsed.raw.clone())
-            .offset_explicit(parsed.offset_explicit)
-            .hostname(env.host)
-            .process_name(env.proc_name.clone())
-            .message(env.message.clone())
-            .confidence(0.8);
+        let mut b = Event::builder(
+            ctx.event_id,
+            parsed.dt,
+            self.name(),
+            ctx.label(),
+            ctx.line_no,
+        )
+        .precision(parsed.precision)
+        .partial_timestamp(parsed.partial)
+        .raw_timestamp(parsed.raw.clone())
+        .offset_explicit(parsed.offset_explicit)
+        .hostname(env.host)
+        .process_name(env.proc_name.clone())
+        .message(env.message.clone())
+        .confidence(0.8);
 
         if let Some(pid) = env.pid {
             b = b.pid(pid);
@@ -143,8 +155,6 @@ impl Parser for SyslogParser {
         Some(ParsedLine::Event(event))
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {

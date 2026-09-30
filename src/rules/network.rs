@@ -53,7 +53,7 @@ impl Rule for RepeatedConnectionAttempts {
             if dst.is_empty() {
                 continue;
             }
-            events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+            events.sort_by_key(|a| a.timestamp);
             // Sliding window: any window-sized slice with enough hits fires once.
             let mut fired = false;
             for i in 0..events.len() {
@@ -71,7 +71,8 @@ impl Rule for RepeatedConnectionAttempts {
                 continue;
             }
             let ids: Vec<_> = events.iter().map(|e| e.id).collect();
-            let refs: Vec<_> = events.iter().copied().map(Finding::evidence_ref).collect();
+            let refs: Vec<_> =
+                events.iter().copied().map(Finding::evidence_ref).collect();
             out.push(Finding {
                 rule_id: self.id().to_string(),
                 title: self.title().to_string(),
@@ -124,7 +125,11 @@ mod tests {
     fn run(events: &[Event]) -> Vec<Finding> {
         let by_id = index_by_id(events);
         let cfg = RuleConfig::default();
-        let ctx = RuleContext { events, by_id: &by_id, config: &cfg };
+        let ctx = RuleContext {
+            events,
+            by_id: &by_id,
+            config: &cfg,
+        };
         RepeatedConnectionAttempts.evaluate(&ctx)
     }
 

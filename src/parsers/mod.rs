@@ -41,6 +41,10 @@ impl<'a> ParseContext<'a> {
 }
 
 /// What one line (or one file, for whole-file parsers) produced.
+// ParsedLine is transient (per-line, dropped after handling); boxing the
+// Event variant to satisfy the lint would add a heap allocation per event
+// in the parse hot path for no benefit.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum ParsedLine {
     /// A normalized event.
@@ -150,8 +154,11 @@ pub fn parse_evidence(
         if sample.is_empty() {
             break;
         }
-        let score: f32 =
-            sample.iter().map(|l| parser.sniff(l, evidence.kind)).sum::<f32>() / sample.len() as f32;
+        let score: f32 = sample
+            .iter()
+            .map(|l| parser.sniff(l, evidence.kind))
+            .sum::<f32>()
+            / sample.len() as f32;
         if score > best_score {
             best_score = score;
             best_idx = i;

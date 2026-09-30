@@ -55,8 +55,9 @@ static SYSLOG_RE: LazyLock<Regex> = LazyLock::new(|| {
         .unwrap()
 });
 
-static EPOCH_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(?P<epoch>\d{10})(?:\.(?P<frac>\d{1,9}))?").unwrap());
+static EPOCH_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?P<epoch>\d{10})(?:\.(?P<frac>\d{1,9}))?").unwrap()
+});
 
 fn month_number(mon: &str) -> Option<u32> {
     Some(match mon {
@@ -106,14 +107,17 @@ pub fn parse_at_start(text: &str) -> Option<Result<ParsedTimestamp, String>> {
 fn parse_rfc3339_like(raw: &str, consumed: usize) -> Result<ParsedTimestamp, String> {
     // Normalize: comma fractions and offsets without a colon are common in logs.
     let mut norm = raw.replace(',', ".");
-    let offset_explicit =
-        norm.ends_with('Z') || norm.ends_with('z') || norm.rfind(['+', '-']).is_some_and(|i| i > 10);
+    let offset_explicit = norm.ends_with('Z')
+        || norm.ends_with('z')
+        || norm.rfind(['+', '-']).is_some_and(|i| i > 10);
     if !offset_explicit {
         // Naive: interpret in local time, documented assumption.
         let offset = local_offset();
         let precision = precision_of(&norm);
         let dt = chrono::NaiveDateTime::parse_from_str(&norm, "%Y-%m-%dT%H:%M:%S%.f")
-            .or_else(|_| chrono::NaiveDateTime::parse_from_str(&norm, "%Y-%m-%d %H:%M:%S%.f"))
+            .or_else(|_| {
+                chrono::NaiveDateTime::parse_from_str(&norm, "%Y-%m-%d %H:%M:%S%.f")
+            })
             .map_err(|_| format!("malformed timestamp: {raw}"))?;
         let dt = offset
             .from_local_datetime(&dt)
@@ -158,13 +162,15 @@ fn parse_syslog_ts(
     consumed: usize,
 ) -> Result<ParsedTimestamp, String> {
     let mon = month_number(&caps["mon"]).ok_or_else(|| format!("bad month: {raw}"))?;
-    let day: u32 = caps["day"]
-        .parse()
-        .map_err(|_| format!("bad day: {raw}"))?;
+    let day: u32 = caps["day"].parse().map_err(|_| format!("bad day: {raw}"))?;
     let (h, m, s): (u32, u32, u32) = (
         caps["h"].parse().map_err(|_| format!("bad hour: {raw}"))?,
-        caps["m"].parse().map_err(|_| format!("bad minute: {raw}"))?,
-        caps["s"].parse().map_err(|_| format!("bad second: {raw}"))?,
+        caps["m"]
+            .parse()
+            .map_err(|_| format!("bad minute: {raw}"))?,
+        caps["s"]
+            .parse()
+            .map_err(|_| format!("bad second: {raw}"))?,
     );
     // No year in syslog format: assume the current year, and mark partial.
     let year = Local::now().date_naive().year();
@@ -186,7 +192,11 @@ fn parse_syslog_ts(
     })
 }
 
-fn parse_epoch(caps: &regex::Captures, raw: &str, consumed: usize) -> Result<ParsedTimestamp, String> {
+fn parse_epoch(
+    caps: &regex::Captures,
+    raw: &str,
+    consumed: usize,
+) -> Result<ParsedTimestamp, String> {
     let secs: i64 = caps["epoch"]
         .parse()
         .map_err(|_| format!("bad epoch: {raw}"))?;
@@ -234,7 +244,8 @@ fn precision_of(raw: &str) -> TimestampPrecision {
 }
 
 fn local_offset() -> FixedOffset {
-    FixedOffset::east_opt(Local::now().offset().local_minus_utc()).unwrap_or(FixedOffset::east_opt(0).unwrap())
+    FixedOffset::east_opt(Local::now().offset().local_minus_utc())
+        .unwrap_or(FixedOffset::east_opt(0).unwrap())
 }
 
 #[cfg(test)]
@@ -243,7 +254,9 @@ mod tests {
 
     #[test]
     fn parses_rfc3339_with_offset() {
-        let p = parse_at_start("2026-09-30T14:02:11+05:30 rest").unwrap().unwrap();
+        let p = parse_at_start("2026-09-30T14:02:11+05:30 rest")
+            .unwrap()
+            .unwrap();
         assert!(p.offset_explicit);
         assert!(!p.partial);
         assert_eq!(p.precision, TimestampPrecision::Second);
@@ -259,7 +272,9 @@ mod tests {
 
     #[test]
     fn parses_syslog_timestamp_as_partial() {
-        let p = parse_at_start("Sep 30 14:02:11 host proc: msg").unwrap().unwrap();
+        let p = parse_at_start("Sep 30 14:02:11 host proc: msg")
+            .unwrap()
+            .unwrap();
         assert!(p.partial);
         assert!(!p.offset_explicit);
         assert_eq!(p.dt.format("%m-%d %H:%M:%S").to_string(), "09-30 14:02:11");
@@ -276,10 +291,7 @@ mod tests {
     fn malformed_month_is_an_error_not_unsupported() {
         // "Foo" has the syslog month shape but is not a real month:
         // recognizable shape, malformed value.
-        assert!(matches!(
-            parse_at_start("Foo 30 14:02:11 x"),
-            Some(Err(_))
-        ));
+        assert!(matches!(parse_at_start("Foo 30 14:02:11 x"), Some(Err(_))));
     }
 
     #[test]
@@ -289,7 +301,9 @@ mod tests {
 
     #[test]
     fn fraction_precision_detected() {
-        let p = parse_at_start("2026-09-30T14:02:11.123Z x").unwrap().unwrap();
+        let p = parse_at_start("2026-09-30T14:02:11.123Z x")
+            .unwrap()
+            .unwrap();
         assert_eq!(p.precision, TimestampPrecision::Millisecond);
     }
 }

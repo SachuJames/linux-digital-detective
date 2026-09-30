@@ -125,7 +125,9 @@ fn render_text(inv: &Investigation, color: bool) -> String {
     out.push_str(&format!("    {} lines read\n", total_lines));
     out.push_str(&format!("    {} events\n", inv.events.len()));
     if skipped > 0 {
-        out.push_str(&format!("    {skipped} lines skipped (see parsing statistics)\n"));
+        out.push_str(&format!(
+            "    {skipped} lines skipped (see parsing statistics)\n"
+        ));
     }
     if inv.evicted > 0 {
         out.push_str(&format!(
@@ -149,7 +151,8 @@ fn render_text(inv: &Investigation, color: bool) -> String {
     out.push_str("Noteworthy sequences:\n");
     out.push_str(&format!("    {}\n\n", inv.findings.len()));
 
-    let by_id: HashMap<EventId, &Event> = inv.events.iter().map(|e| (e.id, e)).collect();
+    let by_id: HashMap<EventId, &Event> =
+        inv.events.iter().map(|e| (e.id, e)).collect();
     for (i, f) in inv.findings.iter().enumerate() {
         out.push_str(&format!("{thin}\n"));
         out.push_str(&format!("FINDING #{}\n", i + 1));
@@ -165,7 +168,10 @@ fn render_text(inv: &Investigation, color: bool) -> String {
                 out.push_str(&format!(
                     "    {} {}\n",
                     e.timestamp.format("%H:%M:%S"),
-                    sanitize_for_terminal(&e.message).lines().next().unwrap_or("")
+                    sanitize_for_terminal(&e.message)
+                        .lines()
+                        .next()
+                        .unwrap_or("")
                 ));
             }
         }
@@ -196,7 +202,10 @@ fn render_text(inv: &Investigation, color: bool) -> String {
         }
         out.push('\n');
         out.push_str("Interpretation:\n");
-        out.push_str(&format!("    {}\n\n", sanitize_for_terminal(&f.explanation)));
+        out.push_str(&format!(
+            "    {}\n\n",
+            sanitize_for_terminal(&f.explanation)
+        ));
     }
 
     // Process activity summary.

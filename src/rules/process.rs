@@ -132,7 +132,10 @@ impl Rule for UnexpectedExecutableLocation {
     fn evaluate(&self, ctx: &RuleContext) -> Vec<Finding> {
         let mut seen: HashMap<String, Vec<&Event>> = HashMap::new();
         for e in ctx.events.iter().filter(|e| {
-            matches!(e.subtype.as_deref(), Some("process_snapshot") | Some("process_created"))
+            matches!(
+                e.subtype.as_deref(),
+                Some("process_snapshot") | Some("process_created")
+            )
         }) {
             if let Some(exe) = e.metadata.get("exe") {
                 if exe.starts_with('/')
@@ -185,13 +188,18 @@ mod tests {
             .unwrap()
             .timestamp_opt(secs, 0)
             .unwrap();
-        Event::builder(id, dt, "test", "t.log", id).precision(TimestampPrecision::Second)
+        Event::builder(id, dt, "test", "t.log", id)
+            .precision(TimestampPrecision::Second)
     }
 
     fn run(events: &[Event], rule: &dyn Rule) -> Vec<Finding> {
         let by_id = index_by_id(events);
         let cfg = RuleConfig::default();
-        let ctx = RuleContext { events, by_id: &by_id, config: &cfg };
+        let ctx = RuleContext {
+            events,
+            by_id: &by_id,
+            config: &cfg,
+        };
         rule.evaluate(&ctx)
     }
 
@@ -213,7 +221,9 @@ mod tests {
         let findings = run(&[login, proc], &ProcessAfterLogin);
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0].rule_id, "PROC-001");
-        assert!(findings[0].explanation.contains("often normal session startup"));
+        assert!(findings[0]
+            .explanation
+            .contains("often normal session startup"));
     }
 
     #[test]

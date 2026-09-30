@@ -41,13 +41,13 @@ pub fn build_forest(processes: &[ProcessInfo]) -> Vec<ProcessNode> {
     for v in by_ppid.values_mut() {
         v.sort_by_key(|p| p.pid);
     }
-    roots
-        .into_iter()
-        .map(|r| build_node(r, &by_ppid))
-        .collect()
+    roots.into_iter().map(|r| build_node(r, &by_ppid)).collect()
 }
 
-fn build_node(info: &ProcessInfo, by_ppid: &HashMap<u32, Vec<&ProcessInfo>>) -> ProcessNode {
+fn build_node(
+    info: &ProcessInfo,
+    by_ppid: &HashMap<u32, Vec<&ProcessInfo>>,
+) -> ProcessNode {
     let children = by_ppid
         .get(&info.pid)
         .map(|kids| kids.iter().map(|k| build_node(k, by_ppid)).collect())

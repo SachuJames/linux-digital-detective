@@ -36,7 +36,7 @@ impl Filter {
                 return false;
             }
         }
-        if !self.types.is_empty() && !self.types.iter().any(|t| *t == e.event_type) {
+        if !self.types.is_empty() && !self.types.contains(&e.event_type) {
             return false;
         }
         if let Some(p) = &self.process {
@@ -58,16 +58,14 @@ impl Filter {
 pub fn build_timeline<'a>(events: &'a [Event], filter: &Filter) -> Vec<&'a Event> {
     let mut out: Vec<&Event> = events.iter().filter(|e| filter.matches(e)).collect();
     // Stable sort: timestamp, then id (parse order) for ties.
-    out.sort_by(|a, b| {
-        a.timestamp
-            .cmp(&b.timestamp)
-            .then_with(|| a.id.cmp(&b.id))
-    });
+    out.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then_with(|| a.id.cmp(&b.id)));
     out
 }
 
 /// The investigation window covered by a set of events.
-pub fn window(events: &[&Event]) -> Option<(DateTime<FixedOffset>, DateTime<FixedOffset>)> {
+pub fn window(
+    events: &[&Event],
+) -> Option<(DateTime<FixedOffset>, DateTime<FixedOffset>)> {
     let mut iter = events.iter();
     let first = iter.next()?;
     let mut min = first.timestamp;
@@ -147,7 +145,10 @@ mod tests {
 
     #[test]
     fn time_window_filters_inclusively() {
-        let events = vec![ev(1, 100, Severity::Info, None), ev(2, 200, Severity::Info, None)];
+        let events = vec![
+            ev(1, 100, Severity::Info, None),
+            ev(2, 200, Severity::Info, None),
+        ];
         let base = FixedOffset::east_opt(0).unwrap();
         let f = Filter {
             from: Some(base.timestamp_opt(150, 0).unwrap()),

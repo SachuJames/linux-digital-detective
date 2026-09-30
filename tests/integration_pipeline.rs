@@ -16,10 +16,6 @@ use lddetective_lib::rules;
 use lddetective_lib::storage::EventStore;
 use lddetective_lib::timeline;
 
-fn fixture(name: &str) -> String {
-    format!("{}/tests/fixtures/{name}", env!("CARGO_MANIFEST_DIR"))
-}
-
 fn run_pipeline() -> Investigation {
     let cfg = Config::default();
     let dir = format!("{}/tests/fixtures", env!("CARGO_MANIFEST_DIR"));
@@ -33,7 +29,8 @@ fn run_pipeline() -> Investigation {
         let mut too_long = 0;
         let lines = evidence::read_text(unit, &mut too_long).unwrap();
         let mut stats = evidence::ParseStats::default();
-        let parsed = parsers::parse_evidence(unit, &lines, first_id, &mut stats).unwrap();
+        let parsed =
+            parsers::parse_evidence(unit, &lines, first_id, &mut stats).unwrap();
         stats.skipped_too_long = too_long;
         first_id += parsed.events.len() as u64 + stats.skipped_total();
         store.extend(parsed.events);
@@ -45,12 +42,9 @@ fn run_pipeline() -> Investigation {
     }
 
     let mut events: Vec<_> = store.events().to_vec();
-    events.sort_by(|a, b| {
-        a.timestamp
-            .cmp(&b.timestamp)
-            .then_with(|| a.id.cmp(&b.id))
-    });
-    let correlations = correlation::correlate(&events, correlation::DEFAULT_WINDOW_SECS);
+    events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then_with(|| a.id.cmp(&b.id)));
+    let correlations =
+        correlation::correlate(&events, correlation::DEFAULT_WINDOW_SECS);
     let by_id: HashMap<_, _> = events.iter().map(|e| (e.id, e)).collect();
     let ctx = rules::RuleContext {
         events: &events,
@@ -94,7 +88,10 @@ fn pipeline_finds_auth_001_in_fixture() {
         .find(|f| f.rule_id == "AUTH-001")
         .expect("AUTH-001 should fire on auth_sample.log");
     assert_eq!(auth.event_ids.len(), 4);
-    assert!(auth.evidence_refs.iter().all(|r| r.starts_with("auth_sample.log")));
+    assert!(auth
+        .evidence_refs
+        .iter()
+        .all(|r| r.starts_with("auth_sample.log")));
 }
 
 #[test]
@@ -136,7 +133,7 @@ fn report_renders_all_formats() {
     assert!(v["findings"].as_array().unwrap().len() >= 3);
 
     let jsonl = reporting::render(&inv, Format::JsonLines, false);
-    assert!(jsonl.lines().count() >= inv.events.len() + 1);
+    assert!(jsonl.lines().count() > inv.events.len());
 
     let csv = reporting::render(&inv, Format::Csv, false);
     assert!(csv.starts_with("id,timestamp,"));

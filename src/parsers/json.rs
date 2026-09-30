@@ -37,11 +37,44 @@ fn ip_field(v: &Value, keys: &[&str]) -> Option<IpAddr> {
 }
 
 const KNOWN_KEYS: &[&str] = &[
-    "timestamp", "time", "@timestamp", "ts", "datetime", "date", "message", "msg", "log",
-    "level", "severity", "loglevel", "host", "hostname", "pid", "process_id", "user", "username",
-    "uid", "process", "proc", "program", "app", "service", "src_ip", "source_ip", "client_ip",
-    "remote_addr", "dst_ip", "dest_ip", "destination_ip", "port", "src_port", "dst_port", "type",
-    "event_type", "category", "subtype",
+    "timestamp",
+    "time",
+    "@timestamp",
+    "ts",
+    "datetime",
+    "date",
+    "message",
+    "msg",
+    "log",
+    "level",
+    "severity",
+    "loglevel",
+    "host",
+    "hostname",
+    "pid",
+    "process_id",
+    "user",
+    "username",
+    "uid",
+    "process",
+    "proc",
+    "program",
+    "app",
+    "service",
+    "src_ip",
+    "source_ip",
+    "client_ip",
+    "remote_addr",
+    "dst_ip",
+    "dest_ip",
+    "destination_ip",
+    "port",
+    "src_port",
+    "dst_port",
+    "type",
+    "event_type",
+    "category",
+    "subtype",
 ];
 
 /// Map one JSON object to an event. `None` = not a usable record.
@@ -56,11 +89,16 @@ fn object_to_event(
         return Some(ParsedLine::Skipped(SkipReason::IncompleteRecord));
     }
 
-    let ts_raw = str_field(v, &["timestamp", "time", "@timestamp", "ts", "datetime", "date"]);
+    let ts_raw = str_field(
+        v,
+        &["timestamp", "time", "@timestamp", "ts", "datetime", "date"],
+    );
     let parsed = match ts_raw {
         Some(raw) => match parse_at_start(raw) {
             Some(Ok(p)) => Some(p),
-            Some(Err(_)) => return Some(ParsedLine::Skipped(SkipReason::MalformedTimestamp)),
+            Some(Err(_)) => {
+                return Some(ParsedLine::Skipped(SkipReason::MalformedTimestamp))
+            }
             None => None,
         },
         None => None,
@@ -80,14 +118,17 @@ fn object_to_event(
         return Some(ParsedLine::Skipped(SkipReason::IncompleteRecord));
     };
 
-    let message = str_field(v, &["message", "msg", "log"]).unwrap_or("").to_string();
-    let mut b = Event::builder(ctx.event_id, parsed.dt, parser_name, ctx.label(), record_no)
-        .precision(parsed.precision)
-        .partial_timestamp(parsed.partial)
-        .raw_timestamp(parsed.raw.clone())
-        .offset_explicit(parsed.offset_explicit)
-        .message(message)
-        .confidence(0.85);
+    let message = str_field(v, &["message", "msg", "log"])
+        .unwrap_or("")
+        .to_string();
+    let mut b =
+        Event::builder(ctx.event_id, parsed.dt, parser_name, ctx.label(), record_no)
+            .precision(parsed.precision)
+            .partial_timestamp(parsed.partial)
+            .raw_timestamp(parsed.raw.clone())
+            .offset_explicit(parsed.offset_explicit)
+            .message(message)
+            .confidence(0.85);
 
     if let Some(t) = str_field(v, &["type", "event_type", "category"]) {
         b = b.event_type(EventType::from_name(t));
@@ -280,7 +321,10 @@ mod tests {
             r#"[{"timestamp":"2026-09-30T14:02:11Z","message":"a"},{"timestamp":"2026-09-30T14:02:12Z","message":"b"}]"#
                 .to_string(),
         ];
-        let wctx = WholeContext { evidence: &e, first_id: 1 };
+        let wctx = WholeContext {
+            evidence: &e,
+            first_id: 1,
+        };
         let parsed = p.parse_whole(&wctx, &lines).unwrap().unwrap();
         assert_eq!(parsed.len(), 2);
         assert!(matches!(parsed[0], ParsedLine::Event(_)));

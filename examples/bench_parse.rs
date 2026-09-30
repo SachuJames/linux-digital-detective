@@ -29,8 +29,8 @@ fn bench_units(label: &str, units: &[&evidence::Evidence]) -> (usize, u64, f64) 
         let mut first_id = 1u64;
         for (unit, lines) in units.iter().zip(inputs.iter()) {
             let mut stats = evidence::ParseStats::default();
-            let parsed =
-                parsers::parse_evidence(unit, lines, first_id, &mut stats).expect("parse failed");
+            let parsed = parsers::parse_evidence(unit, lines, first_id, &mut stats)
+                .expect("parse failed");
             total_events += parsed.events.len() as u64;
             first_id += parsed.events.len() as u64;
         }
@@ -71,7 +71,8 @@ fn main() {
             .unwrap();
         }
     }
-    let big_units = evidence::collect(big_path, big_path).expect("temp file collectable");
+    let big_units =
+        evidence::collect(big_path, big_path).expect("temp file collectable");
     let big_refs: Vec<&evidence::Evidence> = big_units.iter().collect();
     bench_units("generated 200k-line syslog", &big_refs);
     let _ = std::fs::remove_file(big_path);

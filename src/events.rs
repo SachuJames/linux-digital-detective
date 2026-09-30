@@ -13,7 +13,9 @@ use std::net::IpAddr;
 pub type EventId = u64;
 
 /// How serious the event looks, normalized across formats.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum Severity {
     Debug,
@@ -43,7 +45,7 @@ impl Severity {
     /// Map a syslog numeric priority (0-7) to a severity.
     pub fn from_syslog_priority(priority: u8) -> Self {
         match priority {
-            0 | 1 | 2 => Severity::Critical,
+            0..=2 => Severity::Critical,
             3 => Severity::Error,
             4 => Severity::Warning,
             5 => Severity::Notice,
@@ -68,7 +70,17 @@ impl Severity {
 
 /// Coarse category of an event. Fine-grained detail goes in [`Event::subtype`].
 #[derive(
-    Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum EventType {

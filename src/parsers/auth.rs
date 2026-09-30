@@ -22,19 +22,20 @@ use crate::parsers::{ParseContext, ParsedLine, Parser};
 pub struct AuthLogParser;
 
 static FAILED_PASSWORD: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"Failed password for (invalid user )?(\S+) from (\S+) port (\d+)").unwrap()
+    Regex::new(r"Failed password for (invalid user )?(\S+) from (\S+) port (\d+)")
+        .unwrap()
 });
 static ACCEPTED: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"Accepted (?:password|publickey) for (\S+) from (\S+) port (\d+)").unwrap()
+    Regex::new(r"Accepted (?:password|publickey) for (\S+) from (\S+) port (\d+)")
+        .unwrap()
 });
-static FAILED_LOGIN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?i)failed login|authentication failure|bad password").unwrap());
-static SESSION: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"session (opened|closed) for user (\S+)").unwrap()
+static FAILED_LOGIN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)failed login|authentication failure|bad password").unwrap()
 });
-static SUDO: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"sudo:\s+(\S+)\s*:.*COMMAND=(.+)").unwrap()
-});
+static SESSION: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"session (opened|closed) for user (\S+)").unwrap());
+static SUDO: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"sudo:\s+(\S+)\s*:.*COMMAND=(.+)").unwrap());
 /// sudo body after the syslog envelope was stripped ("deploy : ... COMMAND=...").
 static SUDO_STRIPPED: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(\S+)\s*:.*COMMAND=(.+)").unwrap());
@@ -92,7 +93,15 @@ impl Parser for AuthLogParser {
             None => (line.to_string(), None, "unknown".to_string(), None, None),
         };
 
-        parse_auth_body(ctx, self.name(), &body, parsed, &proc_name, pid, host.as_deref())
+        parse_auth_body(
+            ctx,
+            self.name(),
+            &body,
+            parsed,
+            &proc_name,
+            pid,
+            host.as_deref(),
+        )
     }
 }
 
@@ -109,7 +118,7 @@ fn parse_auth_body(
     // A timestamp is mandatory: never fabricate one.
     let parsed = parsed.or_else(|| match parse_at_start(body) {
         Some(Ok(p)) => Some(p),
-        Some(Err(_)) => return None, // signal malformed below
+        Some(Err(_)) => None, // signal malformed below
         None => None,
     });
 
@@ -149,18 +158,28 @@ fn parse_auth_body(
         let opened = &c[1] == "opened";
         classified = Some((
             EventType::Auth,
-            Some(if opened { "session_opened" } else { "session_closed" }),
-            if opened { Severity::Notice } else { Severity::Info },
+            Some(if opened {
+                "session_opened"
+            } else {
+                "session_closed"
+            }),
+            if opened {
+                Severity::Notice
+            } else {
+                Severity::Info
+            },
         ));
     } else if let Some(c) = SUDO.captures(body) {
         user = Some(c[1].to_string());
-        classified = Some((EventType::Privilege, Some("sudo_command"), Severity::Notice));
+        classified =
+            Some((EventType::Privilege, Some("sudo_command"), Severity::Notice));
     } else if proc_name.eq_ignore_ascii_case("sudo") {
         // The envelope strip removed the "sudo:" token; the body now looks
         // like "deploy : TTY=pts/0 ; COMMAND=...".
         if let Some(c) = SUDO_STRIPPED.captures(body) {
             user = Some(c[1].to_string());
-            classified = Some((EventType::Privilege, Some("sudo_command"), Severity::Notice));
+            classified =
+                Some((EventType::Privilege, Some("sudo_command"), Severity::Notice));
         }
     } else if FAILED_LOGIN.is_match(body) {
         user = PAM_USER
@@ -171,16 +190,22 @@ fn parse_auth_body(
     }
 
     let (event_type, subtype, severity) = classified?;
-    let mut b = Event::builder(ctx.event_id, parsed.dt, parser_name, ctx.label(), ctx.line_no)
-        .precision(parsed.precision)
-        .partial_timestamp(parsed.partial)
-        .raw_timestamp(parsed.raw.clone())
-        .offset_explicit(parsed.offset_explicit)
-        .event_type(event_type)
-        .severity(severity)
-        .process_name(proc_name.to_string())
-        .message(body.to_string())
-        .confidence(0.9);
+    let mut b = Event::builder(
+        ctx.event_id,
+        parsed.dt,
+        parser_name,
+        ctx.label(),
+        ctx.line_no,
+    )
+    .precision(parsed.precision)
+    .partial_timestamp(parsed.partial)
+    .raw_timestamp(parsed.raw.clone())
+    .offset_explicit(parsed.offset_explicit)
+    .event_type(event_type)
+    .severity(severity)
+    .process_name(proc_name.to_string())
+    .message(body.to_string())
+    .confidence(0.9);
     if let Some(s) = subtype {
         b = b.subtype(s);
     }
@@ -239,7 +264,10 @@ mod tests {
         let e = event("Sep 30 14:02:11 web01 sshd[8123]: Failed password for root from 203.0.113.7 port 51234 ssh2");
         assert_eq!(e.subtype.as_deref(), Some("ssh_failed_password"));
         assert_eq!(e.user.as_deref(), Some("root"));
-        assert_eq!(e.src_addr.map(|a| a.to_string()).as_deref(), Some("203.0.113.7"));
+        assert_eq!(
+            e.src_addr.map(|a| a.to_string()).as_deref(),
+            Some("203.0.113.7")
+        );
         assert_eq!(e.port, Some(51234));
         assert_eq!(e.severity, Severity::Warning);
     }
@@ -261,7 +289,9 @@ mod tests {
 
     #[test]
     fn non_auth_line_is_not_claimed() {
-        assert!(parse("Sep 30 14:02:11 web01 kernel: [1.2] usb device found").is_none());
+        assert!(
+            parse("Sep 30 14:02:11 web01 kernel: [1.2] usb device found").is_none()
+        );
     }
 
     #[test]

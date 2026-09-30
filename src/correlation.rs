@@ -51,7 +51,9 @@ pub fn correlate(events: &[Event], window_secs: i64) -> Vec<Correlation> {
     let mut out = Vec::new();
     let mut start = 0usize;
     for i in 0..sorted.len() {
-        while sorted[i].timestamp.timestamp() - sorted[start].timestamp.timestamp() > window_secs {
+        while sorted[i].timestamp.timestamp() - sorted[start].timestamp.timestamp()
+            > window_secs
+        {
             start += 1;
         }
         // Cap pairs per event to keep pathological windows bounded.
@@ -102,7 +104,8 @@ fn score_pair(a: &Event, b: &Event, window_secs: i64) -> Option<Correlation> {
             reasons.push(format!("same pid {pa}"));
         }
     }
-    if let (Some(na), Some(nb)) = (a.process_name.as_deref(), b.process_name.as_deref()) {
+    if let (Some(na), Some(nb)) = (a.process_name.as_deref(), b.process_name.as_deref())
+    {
         if na == nb {
             score += 0.15;
             reasons.push(format!("same process '{na}'"));
@@ -134,7 +137,7 @@ fn score_pair(a: &Event, b: &Event, window_secs: i64) -> Option<Correlation> {
 }
 
 /// All correlations touching `id`, strongest first.
-pub fn related_to<'a>(correlations: &'a [Correlation], id: EventId) -> Vec<&'a Correlation> {
+pub fn related_to(correlations: &[Correlation], id: EventId) -> Vec<&Correlation> {
     let mut out: Vec<&Correlation> = correlations
         .iter()
         .filter(|c| c.a == id || c.b == id)

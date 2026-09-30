@@ -4,6 +4,7 @@
 //! evidence -> parsers -> events -> timeline -> correlation -> rules -> reporting.
 
 use std::collections::HashMap;
+use std::io::IsTerminal as _;
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, FixedOffset};
@@ -40,7 +41,8 @@ fn run() -> Result<ExitCode> {
     let color = !cli.no_color
         && std::env::var("NO_COLOR").is_err()
         && cfg.output.color
-        && !cli.quiet;
+        && !cli.quiet
+        && std::io::stdout().is_terminal();
 
     match &cli.command {
         Commands::Version => {
@@ -63,7 +65,9 @@ fn run() -> Result<ExitCode> {
             let inv = build_investigation(&args.input, &cfg)?;
             let format = args.format.as_deref().unwrap_or("text").parse::<Format>()?;
             match format {
-                Format::Text | Format::Json => print_analyze(&inv, &args.input, format)?,
+                Format::Text | Format::Json => {
+                    print_analyze(&inv, &args.input, format)?
+                }
                 _ => {
                     return Err(Error::Usage(
                         "analyze supports formats: text, json".to_string(),
@@ -109,7 +113,10 @@ fn run() -> Result<ExitCode> {
             match format {
                 Format::Text => print_inspect_text(&inv),
                 Format::Json => {
-                    println!("{}", serde_json::to_string_pretty(&inv.files).unwrap_or_default())
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&inv.files).unwrap_or_default()
+                    )
                 }
                 _ => {
                     return Err(Error::Usage(
@@ -151,13 +158,10 @@ fn build_investigation(input: &str, cfg: &config::Config) -> Result<Investigatio
     }
 
     let mut events: Vec<Event> = store.events().to_vec();
-    events.sort_by(|a, b| {
-        a.timestamp
-            .cmp(&b.timestamp)
-            .then_with(|| a.id.cmp(&b.id))
-    });
+    events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then_with(|| a.id.cmp(&b.id)));
 
-    let correlations = correlation::correlate(&events, correlation::DEFAULT_WINDOW_SECS);
+    let correlations =
+        correlation::correlate(&events, correlation::DEFAULT_WINDOW_SECS);
     let by_id = rules::index_by_id(&events);
     let rule_ctx = rules::RuleContext {
         events: &events,
@@ -270,7 +274,13 @@ fn timeline_line(e: &Event, color: bool) -> String {
     if let Some(a) = e.src_addr {
         parts.push(format!("src={a}"));
     }
-    parts.push(sanitize_for_terminal(&e.message).lines().next().unwrap_or("").to_string());
+    parts.push(
+        sanitize_for_terminal(&e.message)
+            .lines()
+            .next()
+            .unwrap_or("")
+            .to_string(),
+    );
     parts.join(" ")
 }
 
@@ -281,7 +291,10 @@ fn print_analyze(inv: &Investigation, input: &str, format: Format) -> Result<()>
             println!("Files: {}", inv.files.len());
             let lines: u64 = inv.files.iter().map(|f| f.stats.lines).sum();
             let skipped: u64 = inv.files.iter().map(|f| f.stats.skipped_total()).sum();
-            println!("Lines: {lines}   Events: {}   Skipped: {skipped}", inv.events.len());
+            println!(
+                "Lines: {lines}   Events: {}   Skipped: {skipped}",
+                inv.events.len()
+            );
             println!();
             let mut by_type: HashMap<&str, usize> = HashMap::new();
             let mut by_sev: HashMap<&str, usize> = HashMap::new();
@@ -291,23 +304,24 @@ fn print_analyze(inv: &Investigation, input: &str, format: Format) -> Result<()>
                 *by_sev.entry(e.severity.as_str()).or_default() += 1;
             }
             for f in &inv.files {
-                *by_parser.entry(f.parser.as_str()).or_default() += f.stats.events as usize;
+                *by_parser.entry(f.parser.as_str()).or_default() +=
+                    f.stats.events as usize;
             }
             println!("By type:");
             let mut types: Vec<_> = by_type.into_iter().collect();
-            types.sort_by(|a, b| b.1.cmp(&a.1));
+            types.sort_by_key(|a| std::cmp::Reverse(a.1));
             for (t, n) in types {
                 println!("    {t}: {n}");
             }
             println!("By severity:");
             let mut sevs: Vec<_> = by_sev.into_iter().collect();
-            sevs.sort_by(|a, b| b.1.cmp(&a.1));
+            sevs.sort_by_key(|a| std::cmp::Reverse(a.1));
             for (s, n) in sevs {
                 println!("    {s}: {n}");
             }
             println!("By parser:");
             let mut parsers: Vec<_> = by_parser.into_iter().collect();
-            parsers.sort_by(|a, b| b.1.cmp(&a.1));
+            parsers.sort_by_key(|a| std::cmp::Reverse(a.1));
             for (p, n) in parsers {
                 println!("    {p}: {n}");
             }
@@ -353,10 +367,14 @@ fn print_inspect_text(inv: &Investigation) {
 fn cmd_live(args: &lddetective_lib::cli::LiveArgs, quiet: bool) -> Result<ExitCode> {
     let format = args.format.as_deref().unwrap_or("text").parse::<Format>()?;
     if !matches!(format, Format::Text | Format::Json) {
-        return Err(Error::Usage("live supports formats: text, json".to_string()));
+        return Err(Error::Usage(
+            "live supports formats: text, json".to_string(),
+        ));
     }
     if args.interval == 0 {
-        return Err(Error::Usage("interval must be at least 1 second".to_string()));
+        return Err(Error::Usage(
+            "interval must be at least 1 second".to_string(),
+        ));
     }
     let uid_names = collectors::uid_name_map();
     let mut prev = collectors::collect_snapshot()?;
@@ -382,9 +400,14 @@ fn cmd_live(args: &lddetective_lib::cli::LiveArgs, quiet: bool) -> Result<ExitCo
                     "[{}] {} {}",
                     e.timestamp.format("%H:%M:%S"),
                     e.subtype.as_deref().unwrap_or("event"),
-                    sanitize_for_terminal(&e.message).lines().next().unwrap_or("")
+                    sanitize_for_terminal(&e.message)
+                        .lines()
+                        .next()
+                        .unwrap_or("")
                 ),
-                Format::Json => println!("{}", serde_json::to_string(&e).unwrap_or_default()),
+                Format::Json => {
+                    println!("{}", serde_json::to_string(&e).unwrap_or_default())
+                }
                 _ => unreachable!(),
             }
         }
