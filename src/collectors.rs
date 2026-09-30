@@ -1,0 +1,1 @@
+//! collectors module (implementation follows).
