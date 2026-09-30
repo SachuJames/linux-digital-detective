@@ -27,7 +27,7 @@ pub const DEFAULT_WINDOW_SECS: i64 = 300;
 pub const MIN_SCORE: f32 = 0.30;
 
 /// One correlated pair.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Correlation {
     pub a: EventId,
     pub b: EventId,

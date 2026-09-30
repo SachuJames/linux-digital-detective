@@ -240,7 +240,7 @@ pub fn read_text(evidence: &Evidence, too_long: &mut u64) -> Result<Vec<String>>
 }
 
 /// Statistics gathered while parsing one evidence unit.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ParseStats {
     pub lines: u64,
     pub events: u64,
