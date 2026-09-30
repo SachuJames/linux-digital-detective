@@ -1,0 +1,6 @@
+2026-09-30 14:02:11,452 INFO  [worker-1] checkout-service: order 88121 received
+2026-09-30 14:02:12,003 WARN  [worker-2] checkout-service: payment retry 1 for order 88121
+2026-09-30 14:02:13,877 ERROR [worker-1] checkout-service: payment failed for order 88121: timeout
+2026-09-30T14:02:14.120Z INFO [api] request completed method=POST path=/orders status=500
+not a timestamped line, just noise
+2026-09-30 14:02:15,010 INFO  [worker-3] checkout-service: order 88122 received

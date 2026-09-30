@@ -86,7 +86,8 @@ fn score_pair(a: &Event, b: &Event, window_secs: i64) -> Option<Correlation> {
     if gap <= window_secs {
         let w = 0.30 * (1.0 - gap as f32 / window_secs as f32);
         score += w;
-        reasons.push(format!("{gap} seconds apart"));
+        let unit = if gap == 1 { "second" } else { "seconds" };
+        reasons.push(format!("{gap} {unit} apart"));
     }
 
     if let (Some(ua), Some(ub)) = (a.user.as_deref(), b.user.as_deref()) {

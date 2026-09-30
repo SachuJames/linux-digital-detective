@@ -170,10 +170,14 @@ fn render_text(inv: &Investigation, color: bool) -> String {
             }
         }
         out.push('\n');
-        // Related correlation signals, if any.
+        // Related correlation signals, if any. Time-only pairs are noise,
+        // so only show pairs that share at least one identifying signal.
         let mut reasons: Vec<String> = Vec::new();
         for c in &inv.correlations {
-            if f.event_ids.contains(&c.a) || f.event_ids.contains(&c.b) {
+            if !(f.event_ids.contains(&c.a) || f.event_ids.contains(&c.b)) {
+                continue;
+            }
+            if c.reasons.iter().any(|r| r.starts_with("same ")) {
                 reasons.extend(c.reasons.iter().cloned());
             }
         }

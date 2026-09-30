@@ -1,0 +1,10 @@
+Sep 30 14:02:11 web01 sshd[8123]: Failed password for root from 203.0.113.7 port 51234 ssh2
+Sep 30 14:02:14 web01 sshd[8123]: Failed password for root from 203.0.113.7 port 51234 ssh2
+Sep 30 14:02:17 web01 sshd[8123]: Failed password for root from 203.0.113.7 port 51234 ssh2
+Sep 30 14:02:20 web01 sshd[8123]: Accepted password for root from 203.0.113.7 port 51234 ssh2
+Sep 30 14:02:21 web01 sshd[8123]: pam_unix(sshd:session): session opened for user root by (uid=0)
+Sep 30 14:02:25 web01 sudo: root : TTY=pts/0 ; COMMAND=/tmp/fix.sh --all
+Sep 30 14:05:02 web01 sshd[9001]: Accepted publickey for deploy from 198.51.100.23 port 41111 ssh2
+Sep 30 14:05:03 web01 sshd[9001]: pam_unix(sshd:session): session opened for user deploy by (uid=0)
+this line is not a log line at all and has no timestamp
+Sep 30 14:06:44 web01 sshd[9001]: pam_unix(sshd:session): session closed for user deploy

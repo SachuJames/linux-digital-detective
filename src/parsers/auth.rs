@@ -63,7 +63,10 @@ impl Parser for AuthLogParser {
             score += 0.45;
         }
         if AUTH_MARKERS.is_match(line) {
-            score += 0.5;
+            // Auth markers (Failed/Accepted password, pam session lines,
+            // sudo COMMAND=) are strongly auth-specific, so they outscore the
+            // generic syslog envelope match.
+            score += 0.75;
         }
         score.min(1.0)
     }
